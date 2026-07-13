@@ -1,0 +1,517 @@
+import SwiftUI
+
+struct UsageView: View {
+    @ObservedObject var store: UsageStore
+    let onCollapse: () -> Void
+    let onQuit: () -> Void
+
+    private let accent = Color(red: 0.31, green: 0.90, blue: 0.72)
+    private let violet = Color(red: 0.55, green: 0.48, blue: 1.0)
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(.ultraThinMaterial)
+
+            LinearGradient(
+                colors: [
+                    Color(red: 0.045, green: 0.055, blue: 0.082).opacity(0.96),
+                    Color(red: 0.065, green: 0.071, blue: 0.11).opacity(0.94)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+
+            Circle()
+                .fill(accent.opacity(0.09))
+                .frame(width: 230, height: 230)
+                .blur(radius: 48)
+                .offset(x: -135, y: -205)
+
+            Circle()
+                .fill(violet.opacity(0.10))
+                .frame(width: 220, height: 220)
+                .blur(radius: 58)
+                .offset(x: 155, y: 190)
+
+            content
+                .padding(18)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        }
+        .padding(6)
+        .preferredColorScheme(.dark)
+    }
+
+    private var content: some View {
+        VStack(spacing: 14) {
+            header
+
+            if let snapshot = store.snapshot, let primary = snapshot.primaryBucket {
+                primaryUsage(primary, snapshot: snapshot)
+                additionalLimits(snapshot.additionalBuckets)
+                tokenStats(snapshot)
+            } else {
+                loadingOrError
+            }
+
+            Spacer(minLength: 0)
+            footer
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent.opacity(0.95), violet.opacity(0.95)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: "terminal.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.07))
+            }
+            .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("CODEX PULSE")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .tracking(1.0)
+                Text("用量监视器")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if let plan = store.snapshot?.planType {
+                Text(displayPlan(plan))
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .tracking(0.7)
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(accent.opacity(0.10), in: Capsule())
+                    .overlay(Capsule().stroke(accent.opacity(0.24), lineWidth: 1))
+            }
+
+            iconButton("minus", help: "缩成迷你条", action: onCollapse)
+            iconButton("power", help: "退出", action: onQuit)
+        }
+    }
+
+    private func primaryUsage(_ bucket: RateLimitBucket, snapshot: UsageSnapshot) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: 9)
+
+                Circle()
+                    .trim(from: 0, to: max(0.012, bucket.remainingPercent / 100))
+                    .stroke(
+                        AngularGradient(
+                            colors: [accent, Color.cyan, violet, accent],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 9, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: accent.opacity(0.28), radius: 8)
+
+                VStack(spacing: 0) {
+                    Text("\(Int(bucket.remainingPercent.rounded()))%")
+                        .font(.system(size: 29, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                    Text("可用")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 118, height: 118)
+
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 6, height: 6)
+                        .shadow(color: statusColor.opacity(0.8), radius: 4)
+                    Text("主额度")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.5)
+                }
+
+                Text(windowTitle(bucket))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("已用 \(formatPercent(bucket.usedPercent))")
+                        .foregroundStyle(.secondary)
+                    Text(resetDescription(bucket.resetsAt))
+                        .foregroundStyle(accent.opacity(0.92))
+                }
+                .font(.system(size: 11, weight: .medium))
+
+                if snapshot.resetCredits > 0 {
+                    Label("\(snapshot.resetCredits) 次重置可用", systemImage: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(violet.opacity(0.95))
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(cardBackground)
+        .overlay(cardBorder)
+    }
+
+    @ViewBuilder
+    private func additionalLimits(_ buckets: [RateLimitBucket]) -> some View {
+        if !buckets.isEmpty {
+            VStack(spacing: 9) {
+                HStack {
+                    Text("其他额度池")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.45)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("不代表当前模型")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundStyle(.secondary.opacity(0.72))
+                }
+                .help("这里显示账户可用的独立额度池，不是当前会话选择的模型")
+
+                ForEach(buckets.prefix(2)) { bucket in
+                    VStack(spacing: 7) {
+                        HStack {
+                            Text(bucket.name)
+                                .font(.system(size: 11, weight: .semibold))
+                                .lineLimit(1)
+                            Spacer()
+                            Text("剩余 \(Int(bucket.remainingPercent.rounded()))%")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(accent)
+                        }
+
+                        GeometryReader { proxy in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.white.opacity(0.07))
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [accent, violet],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: proxy.size.width * bucket.remainingPercent / 100)
+                            }
+                        }
+                        .frame(height: 5)
+                    }
+                }
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 11)
+            .background(cardBackground)
+            .overlay(cardBorder)
+        }
+    }
+
+    private func tokenStats(_ snapshot: UsageSnapshot) -> some View {
+        HStack(spacing: 10) {
+            metricCard(
+                title: "累计 TOKENS",
+                value: compactNumber(snapshot.lifetimeTokens),
+                icon: "sum"
+            )
+            metricCard(
+                title: "最高单日",
+                value: compactNumber(snapshot.peakDailyTokens),
+                icon: "chart.line.uptrend.xyaxis"
+            )
+        }
+    }
+
+    private func metricCard(title: String, value: String, icon: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(violet)
+                .frame(width: 27, height: 27)
+                .background(violet.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(0.45)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity)
+        .background(cardBackground)
+        .overlay(cardBorder)
+    }
+
+    private var loadingOrError: some View {
+        VStack(spacing: 14) {
+            Spacer()
+            switch store.state {
+            case .connecting:
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(accent)
+                Text("正在连接 Codex…")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            case .failed(let message):
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color.orange)
+                Text(message)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .frame(maxWidth: 240)
+                Button("重试") { store.refresh() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(accent.opacity(0.75))
+            case .live:
+                EmptyView()
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 6, height: 6)
+
+            Text(statusText)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Button {
+                store.refresh()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.clockwise")
+                        .rotationEffect(.degrees(store.isRefreshing ? 180 : 0))
+                    Text("刷新")
+                }
+                .font(.system(size: 9, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(store.isRefreshing ? .secondary : accent)
+            .disabled(store.isRefreshing)
+            .help("立即刷新")
+        }
+        .padding(.horizontal, 3)
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(Color.white.opacity(0.045))
+    }
+
+    private var cardBorder: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
+    }
+
+    private func iconButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 24, height: 24)
+                .background(Color.white.opacity(0.045), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    private var statusColor: Color {
+        switch store.state {
+        case .live: return accent
+        case .connecting: return .yellow
+        case .failed: return .orange
+        }
+    }
+
+    private var statusText: String {
+        switch store.state {
+        case .connecting:
+            return "正在同步"
+        case .failed:
+            return "同步失败"
+        case .live:
+            if let date = store.lastUpdated {
+                return "在线 · \(date.formatted(date: .omitted, time: .shortened)) · 60 秒自动刷新"
+            }
+            return "在线 · 60 秒自动刷新"
+        }
+    }
+
+    private func displayPlan(_ plan: String) -> String {
+        switch plan.lowercased() {
+        case "prolite": return "PRO"
+        case "self_serve_business_usage_based": return "BUSINESS"
+        case "enterprise_cbp_usage_based": return "ENTERPRISE"
+        default: return plan.replacingOccurrences(of: "_", with: " ").uppercased()
+        }
+    }
+
+    private func windowTitle(_ bucket: RateLimitBucket) -> String {
+        guard let minutes = bucket.windowDurationMinutes else { return bucket.name }
+        if minutes % 10_080 == 0 { return "\(minutes / 10_080) 周窗口" }
+        if minutes % 1_440 == 0 { return "\(minutes / 1_440) 天窗口" }
+        if minutes % 60 == 0 { return "\(minutes / 60) 小时窗口" }
+        return "\(minutes) 分钟窗口"
+    }
+
+    private func resetDescription(_ date: Date?) -> String {
+        guard let date else { return "重置时间待更新" }
+        let interval = date.timeIntervalSinceNow
+        guard interval > 0 else { return "即将重置" }
+
+        let days = Int(interval / 86_400)
+        let hours = Int(interval.truncatingRemainder(dividingBy: 86_400) / 3_600)
+        if days > 0 { return "\(days) 天 \(hours) 小时后重置" }
+
+        let minutes = max(1, Int(interval / 60))
+        if hours > 0 { return "\(hours) 小时 \(minutes % 60) 分后重置" }
+        return "\(minutes) 分钟后重置"
+    }
+
+    private func compactNumber(_ value: Int64?) -> String {
+        guard let value else { return "—" }
+        let number = Double(value)
+        if number >= 1_000_000_000 { return String(format: "%.1fB", number / 1_000_000_000) }
+        if number >= 1_000_000 { return String(format: "%.1fM", number / 1_000_000) }
+        if number >= 1_000 { return String(format: "%.1fK", number / 1_000) }
+        return "\(value)"
+    }
+
+    private func formatPercent(_ value: Double) -> String {
+        value.rounded() == value ? "\(Int(value))%" : String(format: "%.1f%%", value)
+    }
+}
+
+struct CompactUsageView: View {
+    @ObservedObject var store: UsageStore
+    let onExpand: () -> Void
+    let onQuit: () -> Void
+
+    private let accent = Color(red: 0.31, green: 0.90, blue: 0.72)
+    private let violet = Color(red: 0.55, green: 0.48, blue: 1.0)
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent, violet],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: "terminal.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color(red: 0.035, green: 0.045, blue: 0.07))
+            }
+            .frame(width: 31, height: 31)
+
+            VStack(alignment: .leading, spacing: 2) {
+                if let bucket = store.snapshot?.primaryBucket {
+                    Text("Codex · \(Int(bucket.remainingPercent.rounded()))% 可用")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                    Text("已用 \(Int(bucket.usedPercent.rounded()))%")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Codex Pulse")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                    Text(compactStatus)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Button(action: onExpand) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .frame(width: 25, height: 25)
+                    .background(Color.white.opacity(0.06), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(accent)
+            .help("展开")
+
+            Button(action: onQuit) {
+                Image(systemName: "power")
+                    .font(.system(size: 9, weight: .bold))
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("退出")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background {
+            RoundedRectangle(cornerRadius: 21, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.045, green: 0.055, blue: 0.082).opacity(0.97),
+                            Color(red: 0.065, green: 0.071, blue: 0.11).opacity(0.95)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
+                }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 21, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.13), lineWidth: 1)
+        }
+        .padding(5)
+        .preferredColorScheme(.dark)
+        .onTapGesture(count: 2, perform: onExpand)
+    }
+
+    private var compactStatus: String {
+        switch store.state {
+        case .connecting: return "正在同步"
+        case .live: return "在线"
+        case .failed: return "同步失败"
+        }
+    }
+}

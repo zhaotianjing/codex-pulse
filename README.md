@@ -50,6 +50,18 @@ Only override this warning when the app was downloaded from this repository's of
 
 This approval is normally required only once. If **Open Anyway** does not appear, try opening `Codex Pulse.app` again and immediately return to **System Settings → Privacy & Security**. See [Apple's official instructions](https://support.apple.com/102445) for additional details.
 
+### Start Automatically After Login
+
+To launch Codex Pulse automatically whenever you sign in to your Mac:
+
+1. Make sure `Codex Pulse.app` is in the Applications folder.
+2. Open **System Settings → General → Login Items & Extensions**.
+3. Under **Open at Login**, click the **Add (+)** button.
+4. Select `Codex Pulse.app` from the Applications folder.
+5. Click **Open**.
+
+Keep the app in the Applications folder after adding it. To disable automatic launch later, return to **Open at Login**, select **Codex Pulse**, and click the **Remove (−)** button.
+
 ## Build from Source
 
 Building requires macOS 14 or later and Swift 5.9 or later:

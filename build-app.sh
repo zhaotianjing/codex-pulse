@@ -43,6 +43,7 @@ if LC_ALL=C grep -aqF "$ROOT" "$APP_EXECUTABLE" || LC_ALL=C grep -aq '/Users/' "
 fi
 
 cp "$ROOT/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$ROOT/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 xattr -cr "$APP_DIR"
 codesign --force --sign - --timestamp=none "$APP_DIR"

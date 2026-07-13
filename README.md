@@ -1,5 +1,9 @@
 # Codex Pulse
 
+<p align="center">
+  <img src="Resources/AppIcon.png" width="160" alt="Codex Pulse app icon">
+</p>
+
 Codex Pulse is a native macOS floating usage monitor for Codex. It reads real-time rate limits and token usage for the currently signed-in account through Codex's local app-server protocol. It does not read or store account credentials.
 
 ## Download

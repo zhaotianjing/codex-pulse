@@ -1,61 +1,61 @@
 # Codex Pulse
 
-一个原生 macOS Codex 用量悬浮窗。它通过本机 Codex 自带的 app-server 协议读取当前登录账号的实时额度与 token 数据，不直接读取或保存账号密钥。
+Codex Pulse is a native macOS floating usage monitor for Codex. It reads real-time rate limits and token usage for the currently signed-in account through Codex's local app-server protocol. It does not read or store account credentials.
 
-## 下载
+## Download
 
-从 [GitHub Releases](https://github.com/zhaotianjing/codex-pulse/releases/latest) 下载 `CodexPulse-macOS.zip`，解压后双击 `Codex Pulse.app`。
+Download `CodexPulse-macOS.zip` from [GitHub Releases](https://github.com/zhaotianjing/codex-pulse/releases/latest), unzip it, and open `Codex Pulse.app`.
 
-## 系统要求
+## Requirements
 
-- macOS 14 或更高版本
-- Apple Silicon Mac（当前预编译版本为 arm64）
-- 已安装 ChatGPT/Codex，并已使用 ChatGPT 账号登录 Codex
+- macOS 14 or later
+- An Apple Silicon Mac (the current prebuilt release is arm64)
+- ChatGPT or Codex installed, with Codex signed in through a ChatGPT account
 
-应用不需要额外配置 OpenAI API key。API key 登录模式不一定能返回 ChatGPT 套餐额度。
+No OpenAI API key is required. Accounts signed in with an API key may not provide ChatGPT plan rate-limit data.
 
-## 功能
+## Features
 
-- 悬浮置顶，可跨桌面显示
-- 主 Codex 周期额度与重置倒计时
-- 账户中的其他独立额度池（明确标注为非当前会话模型）
-- 累计 token 与最高单日 token
-- 60 秒自动刷新，支持手动刷新
-- “−”键缩成仍然可见的迷你条，点击展开按钮即可恢复
-- 菜单栏显示、隐藏、刷新与退出
-- 再次双击应用可自动找回窗口
-- 无 Dock 图标，窗口位置自动记忆
+- Always-on-top floating window that can appear across desktops
+- Primary Codex rate limit and reset countdown
+- Other independent account-level limit pools, clearly marked as separate from the active model
+- Lifetime and peak daily token usage
+- Automatic refresh every 60 seconds, plus manual refresh
+- A minimize button that collapses the window into a visible compact bar
+- Menu bar controls to show, hide, refresh, or quit
+- Reopening the app automatically brings the window back
+- No Dock icon, with automatic window-position persistence
 
-## 运行
+## Run the App
 
-1. 确认 Codex 或 ChatGPT 桌面应用已经登录。
-2. 双击 `Codex Pulse.app`。
-3. 如果 macOS 首次阻止打开，请右键应用并选择“打开”。
+1. Make sure Codex or the ChatGPT desktop app is installed and signed in.
+2. Open `Codex Pulse.app`.
+3. If macOS blocks the app the first time, Control-click the app and choose **Open**.
 
-当前发布包使用本地 ad-hoc 签名，尚未经过 Apple notarization，因此首次打开时可能出现安全提示。
+The current release uses local ad-hoc code signing and is not notarized by Apple, so macOS may display a security warning the first time it opens.
 
-## 从源码构建
+## Build from Source
 
-需要 macOS 14+ 和 Swift 5.9+：
+Building requires macOS 14 or later and Swift 5.9 or later:
 
 ```bash
 chmod +x build-app.sh
 ./build-app.sh
 ```
 
-构建产物会写入 `outputs/`。
+Build artifacts are written to `outputs/`.
 
-如果 Codex 可执行文件不在常见安装路径，可在启动前设置：
+If the Codex executable is not in a standard installation path, set its location before launching:
 
 ```bash
 export CODEX_USAGE_CODEX_BIN=/path/to/codex
 open "outputs/Codex Pulse.app"
 ```
 
-## 隐私
+## Privacy
 
-应用不会解析 `~/.codex/auth.json`，不会请求账户资料，也不会保存 API key、access token、邮箱或用量记录。每次刷新只启动 Codex 自带的本地 app-server，并请求 `account/rateLimits/read` 与 `account/usage/read`。完整说明见 [PRIVACY.md](PRIVACY.md)。
+Codex Pulse does not parse `~/.codex/auth.json`, request account profile data, or store API keys, access tokens, email addresses, or usage history. Each refresh starts Codex's local app-server and requests only `account/rateLimits/read` and `account/usage/read`. See [PRIVACY.md](PRIVACY.md) for details.
 
-## 许可证
+## License
 
 [MIT](LICENSE)

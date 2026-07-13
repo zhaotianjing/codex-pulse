@@ -84,7 +84,7 @@ struct UsageView: View {
                 Text("CODEX PULSE")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .tracking(1.0)
-                Text("用量监视器")
+                Text("Usage Monitor")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -102,8 +102,8 @@ struct UsageView: View {
                     .overlay(Capsule().stroke(accent.opacity(0.24), lineWidth: 1))
             }
 
-            iconButton("minus", help: "缩成迷你条", action: onCollapse)
-            iconButton("power", help: "退出", action: onQuit)
+            iconButton("minus", help: "Collapse to compact bar", action: onCollapse)
+            iconButton("power", help: "Quit", action: onQuit)
         }
     }
 
@@ -129,7 +129,7 @@ struct UsageView: View {
                     Text("\(Int(bucket.remainingPercent.rounded()))%")
                         .font(.system(size: 29, weight: .bold, design: .rounded))
                         .monospacedDigit()
-                    Text("可用")
+                    Text("AVAILABLE")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -142,7 +142,7 @@ struct UsageView: View {
                         .fill(statusColor)
                         .frame(width: 6, height: 6)
                         .shadow(color: statusColor.opacity(0.8), radius: 4)
-                    Text("主额度")
+                    Text("MAIN LIMIT")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.secondary)
                         .tracking(0.5)
@@ -152,7 +152,7 @@ struct UsageView: View {
                     .font(.system(size: 17, weight: .bold, design: .rounded))
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("已用 \(formatPercent(bucket.usedPercent))")
+                    Text("Used \(formatPercent(bucket.usedPercent))")
                         .foregroundStyle(.secondary)
                     Text(resetDescription(bucket.resetsAt))
                         .foregroundStyle(accent.opacity(0.92))
@@ -160,7 +160,7 @@ struct UsageView: View {
                 .font(.system(size: 11, weight: .medium))
 
                 if snapshot.resetCredits > 0 {
-                    Label("\(snapshot.resetCredits) 次重置可用", systemImage: "arrow.counterclockwise.circle.fill")
+                    Label("Resets available: \(snapshot.resetCredits)", systemImage: "arrow.counterclockwise.circle.fill")
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(violet.opacity(0.95))
                 }
@@ -178,16 +178,16 @@ struct UsageView: View {
         if !buckets.isEmpty {
             VStack(spacing: 9) {
                 HStack {
-                    Text("其他额度池")
+                    Text("OTHER LIMIT POOLS")
                         .font(.system(size: 9, weight: .bold))
                         .tracking(0.45)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("不代表当前模型")
+                    Text("Not the active model")
                         .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(.secondary.opacity(0.72))
                 }
-                .help("这里显示账户可用的独立额度池，不是当前会话选择的模型")
+                .help("These are account-level limit pools, not the model selected for the current thread.")
 
                 ForEach(buckets.prefix(2)) { bucket in
                     VStack(spacing: 7) {
@@ -196,7 +196,7 @@ struct UsageView: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .lineLimit(1)
                             Spacer()
-                            Text("剩余 \(Int(bucket.remainingPercent.rounded()))%")
+                            Text("Remaining \(Int(bucket.remainingPercent.rounded()))%")
                                 .font(.system(size: 10, weight: .bold, design: .rounded))
                                 .monospacedDigit()
                                 .foregroundStyle(accent)
@@ -230,12 +230,12 @@ struct UsageView: View {
     private func tokenStats(_ snapshot: UsageSnapshot) -> some View {
         HStack(spacing: 10) {
             metricCard(
-                title: "累计 TOKENS",
+                title: "LIFETIME TOKENS",
                 value: compactNumber(snapshot.lifetimeTokens),
                 icon: "sum"
             )
             metricCard(
-                title: "最高单日",
+                title: "PEAK DAY",
                 value: compactNumber(snapshot.peakDailyTokens),
                 icon: "chart.line.uptrend.xyaxis"
             )
@@ -275,7 +275,7 @@ struct UsageView: View {
                 ProgressView()
                     .controlSize(.small)
                     .tint(accent)
-                Text("正在连接 Codex…")
+                Text("Connecting to Codex…")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             case .failed(let message):
@@ -288,7 +288,7 @@ struct UsageView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .frame(maxWidth: 240)
-                Button("重试") { store.refresh() }
+                Button("Retry") { store.refresh() }
                     .buttonStyle(.borderedProminent)
                     .tint(accent.opacity(0.75))
             case .live:
@@ -317,14 +317,14 @@ struct UsageView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "arrow.clockwise")
                         .rotationEffect(.degrees(store.isRefreshing ? 180 : 0))
-                    Text("刷新")
+                    Text("Refresh")
                 }
                 .font(.system(size: 9, weight: .semibold))
             }
             .buttonStyle(.plain)
             .foregroundStyle(store.isRefreshing ? .secondary : accent)
             .disabled(store.isRefreshing)
-            .help("立即刷新")
+            .help("Refresh now")
         }
         .padding(.horizontal, 3)
     }
@@ -362,14 +362,14 @@ struct UsageView: View {
     private var statusText: String {
         switch store.state {
         case .connecting:
-            return "正在同步"
+            return "Syncing"
         case .failed:
-            return "同步失败"
+            return "Sync failed"
         case .live:
             if let date = store.lastUpdated {
-                return "在线 · \(date.formatted(date: .omitted, time: .shortened)) · 60 秒自动刷新"
+                return "Live · \(date.formatted(date: .omitted, time: .shortened)) · refreshes every 60s"
             }
-            return "在线 · 60 秒自动刷新"
+            return "Live · refreshes every 60s"
         }
     }
 
@@ -384,24 +384,28 @@ struct UsageView: View {
 
     private func windowTitle(_ bucket: RateLimitBucket) -> String {
         guard let minutes = bucket.windowDurationMinutes else { return bucket.name }
-        if minutes % 10_080 == 0 { return "\(minutes / 10_080) 周窗口" }
-        if minutes % 1_440 == 0 { return "\(minutes / 1_440) 天窗口" }
-        if minutes % 60 == 0 { return "\(minutes / 60) 小时窗口" }
-        return "\(minutes) 分钟窗口"
+        if minutes % 10_080 == 0 { return durationTitle(minutes / 10_080, unit: "week") }
+        if minutes % 1_440 == 0 { return durationTitle(minutes / 1_440, unit: "day") }
+        if minutes % 60 == 0 { return durationTitle(minutes / 60, unit: "hour") }
+        return durationTitle(minutes, unit: "minute")
+    }
+
+    private func durationTitle(_ value: Int, unit: String) -> String {
+        "\(value)-\(unit) window"
     }
 
     private func resetDescription(_ date: Date?) -> String {
-        guard let date else { return "重置时间待更新" }
+        guard let date else { return "Reset time unavailable" }
         let interval = date.timeIntervalSinceNow
-        guard interval > 0 else { return "即将重置" }
+        guard interval > 0 else { return "Resetting soon" }
 
         let days = Int(interval / 86_400)
         let hours = Int(interval.truncatingRemainder(dividingBy: 86_400) / 3_600)
-        if days > 0 { return "\(days) 天 \(hours) 小时后重置" }
+        if days > 0 { return "Resets in \(days)d \(hours)h" }
 
         let minutes = max(1, Int(interval / 60))
-        if hours > 0 { return "\(hours) 小时 \(minutes % 60) 分后重置" }
-        return "\(minutes) 分钟后重置"
+        if hours > 0 { return "Resets in \(hours)h \(minutes % 60)m" }
+        return "Resets in \(minutes)m"
     }
 
     private func compactNumber(_ value: Int64?) -> String {
@@ -445,10 +449,10 @@ struct CompactUsageView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 if let bucket = store.snapshot?.primaryBucket {
-                    Text("Codex · \(Int(bucket.remainingPercent.rounded()))% 可用")
+                    Text("Codex · \(Int(bucket.remainingPercent.rounded()))% available")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                         .monospacedDigit()
-                    Text("已用 \(Int(bucket.usedPercent.rounded()))%")
+                    Text("Used \(Int(bucket.usedPercent.rounded()))%")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                 } else {
@@ -470,7 +474,7 @@ struct CompactUsageView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(accent)
-            .help("展开")
+            .help("Expand")
 
             Button(action: onQuit) {
                 Image(systemName: "power")
@@ -479,7 +483,7 @@ struct CompactUsageView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("退出")
+            .help("Quit")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
@@ -509,9 +513,9 @@ struct CompactUsageView: View {
 
     private var compactStatus: String {
         switch store.state {
-        case .connecting: return "正在同步"
-        case .live: return "在线"
-        case .failed: return "同步失败"
+        case .connecting: return "Syncing"
+        case .live: return "Live"
+        case .failed: return "Sync failed"
         }
     }
 }

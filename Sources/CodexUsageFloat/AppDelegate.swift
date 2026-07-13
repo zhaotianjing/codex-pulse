@@ -32,16 +32,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = item.button {
             button.image = NSImage(
                 systemSymbolName: "chart.bar.xaxis",
-                accessibilityDescription: "Codex 用量"
+                accessibilityDescription: "Codex Usage"
             )
-            button.toolTip = "Codex 用量"
+            button.toolTip = "Codex Usage"
         }
 
         let menu = NSMenu()
-        menu.addItem(withTitle: "显示 / 隐藏悬浮窗", action: #selector(togglePanel), keyEquivalent: "")
-        menu.addItem(withTitle: "立即刷新", action: #selector(refresh), keyEquivalent: "r")
+        menu.addItem(withTitle: "Show / Hide Floating Window", action: #selector(togglePanel), keyEquivalent: "")
+        menu.addItem(withTitle: "Refresh Now", action: #selector(refresh), keyEquivalent: "r")
         menu.addItem(.separator())
-        menu.addItem(withTitle: "退出 Codex Pulse", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Codex Pulse", action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
 
         item.menu = menu

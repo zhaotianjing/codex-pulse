@@ -40,7 +40,7 @@ codesign --force --sign - --timestamp=none "$APP_DIR"
 rm -f "$OUTPUT_DIR/CodexPulse-macOS.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$OUTPUT_DIR/CodexPulse-macOS.zip"
 
-cp "$ROOT/README.md" "$OUTPUT_DIR/CodexPulse-使用说明.md"
+cp "$ROOT/README.md" "$OUTPUT_DIR/CodexPulse-README.md"
 rm -f "$OUTPUT_DIR/CodexPulse-source.zip"
 zip -rq "$OUTPUT_DIR/CodexPulse-source.zip" \
     Package.swift \

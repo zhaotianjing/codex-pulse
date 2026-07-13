@@ -48,7 +48,7 @@ enum UsageParseError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingRateLimits:
-            return "Codex 没有返回额度数据"
+            return "Codex did not return rate-limit data."
         }
     }
 }

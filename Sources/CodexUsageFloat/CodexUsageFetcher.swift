@@ -9,11 +9,11 @@ enum CodexUsageFetcherError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .codexNotFound:
-            return "未找到 Codex，请先安装并登录 Codex"
+            return "Codex was not found. Install Codex and sign in first."
         case .launchFailed(let detail):
-            return "无法启动 Codex：\(detail)"
+            return "Could not start Codex: \(detail)"
         case .timedOut:
-            return "连接 Codex 超时，请稍后重试"
+            return "The Codex connection timed out. Try again later."
         case .serverError(let detail):
             return detail
         }

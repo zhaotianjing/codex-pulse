@@ -50,7 +50,7 @@ Only override this warning when the app was downloaded from this repository's of
 
 This approval is normally required only once. If **Open Anyway** does not appear, try opening `Codex Pulse.app` again and immediately return to **System Settings → Privacy & Security**. See [Apple's official instructions](https://support.apple.com/102445) for additional details.
 
-### Start Automatically After Login
+### Start Automatically After Login (Optional)
 
 To launch Codex Pulse automatically whenever you sign in to your Mac:
 

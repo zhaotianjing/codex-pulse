@@ -115,7 +115,7 @@ final class CodexUsageFetcher {
                     "clientInfo": [
                         "name": "codex-usage-float",
                         "title": "Codex Pulse",
-                        "version": "1.0.1"
+                        "version": "1.0.2"
                     ],
                     "capabilities": [
                         "experimentalApi": true,

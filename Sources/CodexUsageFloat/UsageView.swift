@@ -367,9 +367,9 @@ struct UsageView: View {
             return "Sync failed"
         case .live:
             if let date = store.lastUpdated {
-                return "Live · \(date.formatted(date: .omitted, time: .shortened)) · refreshes every 60s"
+                return "Live · \(date.formatted(date: .omitted, time: .shortened)) · refreshes every 5 min"
             }
-            return "Live · refreshes every 60s"
+            return "Live · refreshes every 5 min"
         }
     }
 

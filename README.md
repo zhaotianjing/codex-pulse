@@ -24,7 +24,7 @@ No OpenAI API key is required. Accounts signed in with an API key may not provid
 - Primary Codex rate limit and reset countdown
 - Other independent account-level limit pools, clearly marked as separate from the active model
 - Lifetime and peak daily token usage
-- Automatic refresh every 60 seconds, plus manual refresh
+- Automatic refresh every 5 minutes, plus manual refresh
 - A minimize button that collapses the window into a visible compact bar
 - Menu bar controls to show, hide, refresh, or quit
 - Reopening the app automatically brings the window back

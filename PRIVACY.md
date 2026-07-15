@@ -14,6 +14,10 @@ the local Codex app-server protocol to request:
 The app does not request account profile details and does not read
 `~/.codex/auth.json`.
 
+Before launching Codex, the app verifies the executable's Developer ID
+signature, OpenAI Team ID, and code identifier. It does not send signing
+metadata anywhere.
+
 ## Authentication
 
 Codex Pulse does not ask for, store, or transmit an API key, access token,

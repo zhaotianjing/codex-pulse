@@ -70,6 +70,8 @@ swift build \
     --config-path "$ROOT/work/swiftpm-config" \
     --security-path "$ROOT/work/swiftpm-security"
 
+"$ROOT/.build/release/$EXECUTABLE_NAME" --self-test
+
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp ".build/release/$EXECUTABLE_NAME" "$APP_EXECUTABLE"

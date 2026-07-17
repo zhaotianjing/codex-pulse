@@ -7,6 +7,7 @@ struct UsageView: View {
 
     private let accent = Color(red: 0.31, green: 0.90, blue: 0.72)
     private let violet = Color(red: 0.55, green: 0.48, blue: 1.0)
+    private let claudeAccent = Color(red: 0.91, green: 0.52, blue: 0.38)
 
     var body: some View {
         ZStack {
@@ -35,8 +36,10 @@ struct UsageView: View {
                 .blur(radius: 58)
                 .offset(x: 155, y: 190)
 
-            content
-                .padding(18)
+            ScrollView(.vertical, showsIndicators: false) {
+                content
+                    .padding(18)
+            }
         }
         .overlay {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
@@ -57,6 +60,8 @@ struct UsageView: View {
             } else {
                 loadingOrError
             }
+
+            claudeUsage
 
             Spacer(minLength: 0)
             footer
@@ -242,6 +247,150 @@ struct UsageView: View {
         }
     }
 
+    private var claudeUsage: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 7) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(claudeAccent)
+                Text("CLAUDE USAGE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(0.45)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                if let snapshot = store.claudeSnapshot {
+                    Text(snapshot.isStale ? "CACHED" : "RECENT")
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                        .tracking(0.4)
+                        .foregroundStyle(snapshot.isStale ? Color.orange : claudeAccent)
+                }
+
+                if store.isClaudeMonitoringEnabled {
+                    Button("Disable") { store.disableClaudeMonitoring() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .help("Restore the previous Claude status line and remove captured usage")
+                }
+            }
+
+            if let snapshot = store.claudeSnapshot {
+                ForEach(snapshot.limits.prefix(4)) { limit in
+                    claudeLimitRow(limit)
+                }
+
+                if case .failed = store.claudeState {
+                    Text("Refresh failed · showing the last safe snapshot")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundStyle(Color.orange)
+                }
+            } else {
+                claudeEmptyState
+            }
+        }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 11)
+        .background(cardBackground)
+        .overlay(cardBorder)
+    }
+
+    private func claudeLimitRow(_ limit: ClaudeRateLimit) -> some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 8) {
+                Text(limit.name)
+                    .font(.system(size: 10, weight: .semibold))
+                    .lineLimit(1)
+                Spacer()
+                Text("\(formatPercent(limit.usedPercent)) used")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(claudeAccent)
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.07))
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [claudeAccent, violet],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: proxy.size.width * limit.usedPercent / 100)
+                }
+            }
+            .frame(height: 4)
+
+            HStack {
+                Spacer()
+                Text(claudeResetDescription(limit.resetsAt))
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var claudeEmptyState: some View {
+        switch store.claudeState {
+        case .disabled:
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Optional monitoring captures rate limits from normal Claude Code status-line updates. It sends no prompt and uses no extra tokens.")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Enable Claude Monitoring") {
+                    store.enableClaudeMonitoring()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(claudeAccent)
+            }
+        case .connecting:
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(claudeAccent)
+                Text("Checking captured Claude plan usage…")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: 7) {
+                Text(message)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    if store.isClaudeMonitoringEnabled {
+                        Button("Retry") { store.refresh() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(claudeAccent)
+                        Button("Disable") { store.disableClaudeMonitoring() }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button("Enable Claude Monitoring") {
+                            store.enableClaudeMonitoring()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(claudeAccent)
+                    }
+                }
+            }
+        case .live:
+            EmptyView()
+        }
+    }
+
     private func metricCard(title: String, value: String, icon: String) -> some View {
         HStack(spacing: 9) {
             Image(systemName: icon)
@@ -352,25 +501,61 @@ struct UsageView: View {
     }
 
     private var statusColor: Color {
-        switch store.state {
-        case .live: return accent
-        case .connecting: return .yellow
-        case .failed: return .orange
+        if hasSyncFailure { return .orange }
+        if isSyncing { return .yellow }
+        return accent
+    }
+
+    private var isSyncing: Bool {
+        if case .connecting = store.state { return true }
+        if case .connecting = store.claudeState { return true }
+        return false
+    }
+
+    private var hasSyncFailure: Bool {
+        if case .failed = store.state { return true }
+        if case .failed = store.claudeState { return true }
+        if store.claudeSnapshot?.isStale == true { return true }
+        return false
+    }
+
+    private var hasClaudeLiveData: Bool {
+        guard store.isClaudeMonitoringEnabled,
+              let snapshot = store.claudeSnapshot,
+              !snapshot.isStale else { return false }
+        if case .live = store.claudeState { return true }
+        return false
+    }
+
+    private var latestUpdate: Date? {
+        [store.lastUpdated, store.lastClaudeUpdated].compactMap { $0 }.max()
+    }
+
+    private func claudeResetDescription(_ date: Date?) -> String {
+        guard let date else { return "Reset time unavailable" }
+        if date.timeIntervalSinceNow <= 0 { return "Reset pending refresh" }
+
+        if Calendar.current.isDateInToday(date) {
+            return "Resets at \(date.formatted(date: .omitted, time: .shortened))"
         }
+        return "Resets \(date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
     }
 
     private var statusText: String {
-        switch store.state {
-        case .connecting:
-            return "Syncing"
-        case .failed:
-            return "Sync failed"
-        case .live:
-            if let date = store.lastUpdated {
-                return "Live · \(date.formatted(date: .omitted, time: .shortened)) · refreshes every 5 min"
+        if isSyncing { return "Syncing" }
+        if hasSyncFailure {
+            if store.claudeSnapshot?.isStale == true,
+               case .live = store.state {
+                return "Codex live · Claude cached · every 5 min"
             }
-            return "Live · refreshes every 5 min"
+            return "Partial sync · refreshes every 5 min"
         }
+
+        let provider = hasClaudeLiveData ? "Codex live · Claude recent" : "Codex live"
+        if let date = latestUpdate {
+            return "\(provider) · \(date.formatted(date: .omitted, time: .shortened)) · every 5 min"
+        }
+        return "\(provider) · refreshes every 5 min"
     }
 
     private func displayPlan(_ plan: String) -> String {

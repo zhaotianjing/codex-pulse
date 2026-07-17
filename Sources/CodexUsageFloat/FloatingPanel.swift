@@ -7,7 +7,7 @@ final class UsagePanel: NSPanel {
 }
 
 final class FloatingPanelController: NSWindowController {
-    private static let expandedSize = NSSize(width: 356, height: 458)
+    private static let expandedSize = NSSize(width: 356, height: 620)
     private static let collapsedSize = NSSize(width: 236, height: 66)
 
     private let panel: UsagePanel
